@@ -11,7 +11,7 @@ const client = new Client({
     ]
 });
 
-// Load Commands
+// Loading command
 client.commands = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
