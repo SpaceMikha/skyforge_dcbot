@@ -1,36 +1,42 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const config = require('./utils/config.js');
 const fs = require('fs');
+const path = require('path');
+
+
+require('dotenv').config();
 
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.GuildMessageReactions
     ]
 });
 
-// Loading command
-client.commands = new Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+client.once('ready', async () => {
+    console.log(`✅ Online!`);
 
-for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.name, command);
-}
+    const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 
-// Event Handlers
-const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
+    for(const file of eventFiles){
+        const event = require(`./events/${file}`);
+        client.on(event.name, (...args) => event.execute(...args, client));
+    }
 
-for (const file of eventFiles) {
-    const event = require(`./events/${file}`);
-    client.on(event.name, (...args) => event.execute(...args, client));
-}
+    const channel = client.channels.cache.get(config.verificationChannelID);
+    if (!channel) return console.error("❌ Verification channel not found!");
 
-client.once('ready', () => {
-    console.log(`✅ Logged in as ${client.user.tag}`);
-    client.user.setActivity("Managing SkyForge ✈", { type: "WATCHING" });
+    const embed = new EmbedBuilder()
+        .setColor("#3498db")
+        .setTitle("✅ SkyForge Verification")
+        .setDescription("React with ✅ to verify yourself and access the server.")
+        .setFooter({ text: "SkyForge Bot - Automated Verification" });
+
+    let sentMessage = await channel.send({ embeds: [embed] });
+    sentMessage.react("✅"); // React to the message automatically
 });
 
 client.login(process.env.TOKEN);
